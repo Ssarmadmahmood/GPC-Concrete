@@ -8,11 +8,11 @@ with open('optimized_xgb_gwo.pkl', 'rb') as file:
     model = pickle.load(file)
 
 # ✅ Page Config
-st.set_page_config(page_title="High Strength Glass Powdered Concrete Strength Predictor", page_icon="🏗️", layout="centered")
+st.set_page_config(page_title="Concrete Strength Predictor", page_icon="🏗️", layout="centered")
 
 # ✅ Title & Description
-st.title("🏗️ Concrete Strength Prediction")
-st.markdown("Enter the mix proportions or select a predefined mix ratio to predict the compressive strength of concrete.")
+st.title("🏗️ Glass Powder Concrete Strength Prediction")
+st.markdown("Enter the mix proportions or select a predefined mix ratio to predict the compressive strength of High Strength GPC.")
 
 # ✅ Sidebar for better UI
 st.sidebar.title("🔢 Input Features")
