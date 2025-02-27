@@ -32,36 +32,36 @@ if selected_ratio != "Custom (Manual Entry)":
     total_mass = 2400  # Approximate total density of 1m³ concrete (kg/m³)
 
     # Calculate individual component weights
-    cement = total_mass * (cement_ratio / sum([cement_ratio, fine_agg_ratio, coarse_agg_ratio]))
-    fine_aggregate = total_mass * (fine_agg_ratio / sum([cement_ratio, fine_agg_ratio, coarse_agg_ratio]))
-    coarse_aggregate = total_mass * (coarse_agg_ratio / sum([cement_ratio, fine_agg_ratio, coarse_agg_ratio]))
+    cement = float(total_mass * (cement_ratio / sum([cement_ratio, fine_agg_ratio, coarse_agg_ratio])))
+    fine_aggregate = float(total_mass * (fine_agg_ratio / sum([cement_ratio, fine_agg_ratio, coarse_agg_ratio])))
+    coarse_aggregate = float(total_mass * (coarse_agg_ratio / sum([cement_ratio, fine_agg_ratio, coarse_agg_ratio])))
 
     # Adjust coarse aggregate limits to realistic values
-    coarse_aggregate = min(1260, max(800, coarse_aggregate))
+    coarse_aggregate = min(1260.0, max(800.0, coarse_aggregate))
 
     # Adjust water based on cement content
-    water = cement * w_c_ratio
+    water = float(cement * w_c_ratio)
 
     # Default Glass Powder (10% of Cement)
-    glass_powder = cement * glass_powder_ratio
+    glass_powder = float(cement * glass_powder_ratio)
     cement -= glass_powder  # Reduce cement by glass powder amount
 else:
     # Allow manual entry
-    cement, fine_aggregate, coarse_aggregate, water, glass_powder = 400, 700, 1000, 180, 50
+    cement, fine_aggregate, coarse_aggregate, water, glass_powder = 400.0, 700.0, 1000.0, 180.0, 50.0
 
-# ✅ Sliders for Input Features
-cement = st.sidebar.slider("Cement (kg/m³)", 152, 1062, int(cement))
-fine_aggregate = st.sidebar.slider("Fine Aggregate (kg/m³)", 0, 1094, int(fine_aggregate))
-coarse_aggregate = st.sidebar.slider("Coarse Aggregate (kg/m³)", 0, 1260, int(coarse_aggregate))
-water = st.sidebar.slider("Water (kg/m³)", 127.5, 271.95, int(water))
-glass_powder = st.sidebar.slider("Glass Powder (kg/m³)", 0, 450, int(glass_powder))
-superplasticizer = st.sidebar.slider("Superplasticizer (kg/m³)", 0.0, 52.5, 5.0)
-days = st.sidebar.slider("Curing Days", 1, 365, 28)
+# ✅ Sliders for Input Features (Ensuring Float Type Consistency)
+cement = st.sidebar.slider("Cement (kg/m³)", 152.0, 1062.0, cement, step=1.0)
+fine_aggregate = st.sidebar.slider("Fine Aggregate (kg/m³)", 0.0, 1094.0, fine_aggregate, step=1.0)
+coarse_aggregate = st.sidebar.slider("Coarse Aggregate (kg/m³)", 0.0, 1260.0, coarse_aggregate, step=1.0)
+water = st.sidebar.slider("Water (kg/m³)", 127.5, 271.95, water, step=1.0)
+glass_powder = st.sidebar.slider("Glass Powder (kg/m³)", 0.0, 450.0, glass_powder, step=1.0)
+superplasticizer = st.sidebar.slider("Superplasticizer (kg/m³)", 0.0, 52.5, 5.0, step=0.1)
+days = st.sidebar.slider("Curing Days", 1, 365, 28, step=1)
 
 # ✅ Adjust Cement when Glass Powder Increases
 if glass_powder > 0:
     cement -= glass_powder * 0.9  # Reduce cement in proportion to glass powder
-    cement = max(152, cement)  # Ensure cement doesn't go below 152 kg/m³
+    cement = max(152.0, cement)  # Ensure cement doesn't go below 152 kg/m³
 
 # ✅ Adjust Water when Superplasticizer Increases
 water -= superplasticizer * 2  # More plasticizer means lower water demand
@@ -86,4 +86,5 @@ if st.sidebar.button("🔍 Predict Strength"):
 # ✅ Footer
 st.markdown("---")
 st.markdown("📌 Built with **XGBoost + Streamlit** | 🚀 Deployed on **Streamlit Cloud**")
+
 
