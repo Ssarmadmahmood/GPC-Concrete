@@ -19,9 +19,9 @@ st.sidebar.title("🔢 Input Features")
 
 # ✅ Mix Ratio Dropdown (Realistic Values Based on Data)
 mix_ratios = {
-    "1:1:2": (1, 1, 2, 0.45, 0.1),  # (Cement, Fine Agg, Coarse Agg, W/C Ratio, Glass Powder %)
-    "1:1.5:3": (1, 1.5, 3, 0.50, 0.1),
-    "1:2:4": (1, 2, 4, 0.55, 0.1),
+    "1:1:2": (1, 1, 2, 0.35, 0.1),  # (Cement, Fine Agg, Coarse Agg, W/C Ratio, Glass Powder %)
+    "1:1.5:3": (1, 1.5, 3, 0.40, 0.1),
+    "1:2:4": (1, 2, 4, 0.45, 0.1),
     "Custom (Manual Entry)": None
 }
 selected_ratio = st.sidebar.selectbox("Select a Concrete Mix Ratio", list(mix_ratios.keys()))
