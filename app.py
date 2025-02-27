@@ -1,10 +1,11 @@
 # Install necessary libraries (for local use)
 import os
-os.system("pip install -r requirements.txt")
+os.system("pip install joblib")  # Install joblib manually if missing
+
 import streamlit as st
 import numpy as np
 import pandas as pd
-import joblib  # For loading the trained model
+import joblib
 
 # ✅ Load the optimized XGBoost model (GWO)
 model = joblib.load("optimized_xgb_gwo.pkl")  # Ensure the model file is in the repo
