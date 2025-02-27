@@ -29,21 +29,23 @@ selected_ratio = st.sidebar.selectbox("Select a Concrete Mix Ratio", list(mix_ra
 # ✅ Default values based on selection
 if selected_ratio != "Custom (Manual Entry)":
     cement_ratio, fine_agg_ratio, coarse_agg_ratio, w_c_ratio, glass_powder_ratio = mix_ratios[selected_ratio]
-    total_mass = 2400  # Approximate total density of 1m³ concrete (kg/m³)
+    
+    total_mass = 2400  # Set a fixed realistic total density (not exceeding)
+    
+    # ✅ Normalize mix proportions to fit within 2400 kg/m³
+    total_ratio = cement_ratio + fine_agg_ratio + coarse_agg_ratio
+    cement = (cement_ratio / total_ratio) * total_mass * 0.9  # Reduce slightly to avoid overshoot
+    fine_aggregate = (fine_agg_ratio / total_ratio) * total_mass
+    coarse_aggregate = (coarse_agg_ratio / total_ratio) * total_mass
 
-    # Calculate individual component weights
-    cement = float(total_mass * (cement_ratio / sum([cement_ratio, fine_agg_ratio, coarse_agg_ratio])))
-    fine_aggregate = float(total_mass * (fine_agg_ratio / sum([cement_ratio, fine_agg_ratio, coarse_agg_ratio])))
-    coarse_aggregate = float(total_mass * (coarse_agg_ratio / sum([cement_ratio, fine_agg_ratio, coarse_agg_ratio])))
-
-    # Adjust coarse aggregate limits to realistic values
+    # ✅ Adjust coarse aggregate limits to realistic values
     coarse_aggregate = min(1260.0, max(800.0, coarse_aggregate))
 
-    # Adjust water based on cement content
-    water = float(cement * w_c_ratio)
+    # ✅ Adjust water based on cement content
+    water = cement * w_c_ratio
 
-    # Default Glass Powder (10% of Cement)
-    glass_powder = float(cement * glass_powder_ratio)
+    # ✅ Default Glass Powder (10% of Cement)
+    glass_powder = cement * glass_powder_ratio
     cement -= glass_powder  # Reduce cement by glass powder amount
 else:
     # Allow manual entry
