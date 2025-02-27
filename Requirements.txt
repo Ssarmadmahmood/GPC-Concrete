@@ -5,5 +5,5 @@ scikit-learn
 xgboost
 shap
 matplotlib
-joblib
+--no-cache-dir joblib
 pdpbox
