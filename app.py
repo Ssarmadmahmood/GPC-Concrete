@@ -1,14 +1,11 @@
-# Install necessary libraries (for local use)
-import os
-os.system("pip install joblib")  # Install joblib manually if missing
-
 import streamlit as st
 import numpy as np
 import pandas as pd
-import joblib
+import pickle  # ✅ Use pickle instead of joblib
 
-# ✅ Load the optimized XGBoost model (GWO)
-model = joblib.load("optimized_xgb_gwo.pkl")  # Ensure the model file is in the repo
+# ✅ Load the trained model using pickle
+with open('optimized_xgb_gwo.pkl', 'rb') as file:
+    model = pickle.load(file)
 
 # ✅ Page Config
 st.set_page_config(page_title="Concrete Strength Predictor", page_icon="🏗️", layout="centered")
