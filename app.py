@@ -81,18 +81,9 @@ input_df = pd.DataFrame(input_data, columns=columns)
 
 # ✅ Predict Compressive Strength
 if st.sidebar.button("🔍 Predict Strength"):
-    # ✅ Add progress bar before showing result
-    progress_bar = st.progress(0)
-import time
-for i in range(100):
-    time.sleep(0.02)  # Simulating a short delay
-    progress_bar.progress(i + 1)
-
-# ✅ Make Prediction
-prediction = model.predict(input_df)[0]  # Ensure model prediction is inside the button event
-
-# ✅ Display Result
-st.success(f"✅ **Predicted Compressive Strength:** {prediction:.2f} MPa")
+    prediction = model.predict(input_df)[0]  # Get the prediction
+    st.success(f"✅ **Predicted Compressive Strength:** {prediction:.2f} MPa")
+    st.balloons()
 
 
 # ✅ Footer
