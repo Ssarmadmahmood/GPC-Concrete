@@ -21,7 +21,7 @@ st.sidebar.title("🔢 Input Features")
 mix_ratios = {
     "1:1:2": (1, 1, 1.5, 0.35, 0.1),  # (Cement, Fine Agg, Coarse Agg, W/C Ratio, Glass Powder %)
     "1:1.5:3": (1, 1.5, 3, 0.40, 0.1),
-    "1:2:4": (1, 2, 4, 0.45, 0.1),
+    "1:2:4": (2, 2, 3, 0.45, 0.1),
     "Custom (Manual Entry)": None
 }
 selected_ratio = st.sidebar.selectbox("Select a Concrete Mix Ratio", list(mix_ratios.keys()))
