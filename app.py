@@ -17,48 +17,55 @@ st.markdown("Enter the mix proportions or select a predefined mix ratio to predi
 # ✅ Sidebar for better UI
 st.sidebar.title("🔢 Input Features")
 
-# ✅ Mix Ratio Dropdown
+# ✅ Mix Ratio Dropdown (Realistic Values Based on Data)
 mix_ratios = {
-    "1:1:2": (1, 1, 2, 0.45),  # (Cement, Fine Agg, Coarse Agg, W/C Ratio)
-    "1:1.5:3": (1, 1.5, 3, 0.50),
-    "1:2:4": (1, 2, 4, 0.55),
+    "1:1:2": (1, 1, 2, 0.45, 0.1),  # (Cement, Fine Agg, Coarse Agg, W/C Ratio, Glass Powder %)
+    "1:1.5:3": (1, 1.5, 3, 0.50, 0.1),
+    "1:2:4": (1, 2, 4, 0.55, 0.1),
     "Custom (Manual Entry)": None
 }
 selected_ratio = st.sidebar.selectbox("Select a Concrete Mix Ratio", list(mix_ratios.keys()))
 
 # ✅ Default values based on selection
 if selected_ratio != "Custom (Manual Entry)":
-    cement_ratio, fine_agg_ratio, coarse_agg_ratio, w_c_ratio = mix_ratios[selected_ratio]
+    cement_ratio, fine_agg_ratio, coarse_agg_ratio, w_c_ratio, glass_powder_ratio = mix_ratios[selected_ratio]
     total_mass = 2400  # Approximate total density of 1m³ concrete (kg/m³)
-    
+
     # Calculate individual component weights
     cement = total_mass * (cement_ratio / sum([cement_ratio, fine_agg_ratio, coarse_agg_ratio]))
     fine_aggregate = total_mass * (fine_agg_ratio / sum([cement_ratio, fine_agg_ratio, coarse_agg_ratio]))
     coarse_aggregate = total_mass * (coarse_agg_ratio / sum([cement_ratio, fine_agg_ratio, coarse_agg_ratio]))
-    
+
+    # Adjust coarse aggregate limits to realistic values
+    coarse_aggregate = min(1260, max(800, coarse_aggregate))
+
     # Adjust water based on cement content
     water = cement * w_c_ratio
+
+    # Default Glass Powder (10% of Cement)
+    glass_powder = cement * glass_powder_ratio
+    cement -= glass_powder  # Reduce cement by glass powder amount
 else:
     # Allow manual entry
-    cement, fine_aggregate, coarse_aggregate, water = 400, 700, 1000, 180
+    cement, fine_aggregate, coarse_aggregate, water, glass_powder = 400, 700, 1000, 180, 50
 
 # ✅ Sliders for Input Features
-cement = st.sidebar.slider("Cement (kg/m³)", 100, 800, int(cement))
-fine_aggregate = st.sidebar.slider("Fine Aggregate (kg/m³)", 400, 1000, int(fine_aggregate))
-coarse_aggregate = st.sidebar.slider("Coarse Aggregate (kg/m³)", 800, 1300, int(coarse_aggregate))
-water = st.sidebar.slider("Water (kg/m³)", 100, 250, int(water))
-glass_powder = st.sidebar.slider("Glass Powder (kg/m³)", 0, 300, 50)
-superplasticizer = st.sidebar.slider("Superplasticizer (kg/m³)", 0.0, 30.0, 5.0)
+cement = st.sidebar.slider("Cement (kg/m³)", 152, 1062, int(cement))
+fine_aggregate = st.sidebar.slider("Fine Aggregate (kg/m³)", 0, 1094, int(fine_aggregate))
+coarse_aggregate = st.sidebar.slider("Coarse Aggregate (kg/m³)", 0, 1260, int(coarse_aggregate))
+water = st.sidebar.slider("Water (kg/m³)", 127.5, 271.95, int(water))
+glass_powder = st.sidebar.slider("Glass Powder (kg/m³)", 0, 450, int(glass_powder))
+superplasticizer = st.sidebar.slider("Superplasticizer (kg/m³)", 0.0, 52.5, 5.0)
 days = st.sidebar.slider("Curing Days", 1, 365, 28)
 
 # ✅ Adjust Cement when Glass Powder Increases
 if glass_powder > 0:
-    cement -= glass_powder * 0.8  # Reducing cement proportionally
-    cement = max(100, cement)  # Ensure cement doesn't go below 100 kg/m³
+    cement -= glass_powder * 0.9  # Reduce cement in proportion to glass powder
+    cement = max(152, cement)  # Ensure cement doesn't go below 152 kg/m³
 
 # ✅ Adjust Water when Superplasticizer Increases
 water -= superplasticizer * 2  # More plasticizer means lower water demand
-water = max(100, water)  # Ensure water doesn't drop below 100 kg/m³
+water = max(127.5, water)  # Ensure water doesn't drop below 127.5 kg/m³
 
 # ✅ Warning if total mass is unrealistic
 total_mass = cement + fine_aggregate + coarse_aggregate + water + glass_powder + superplasticizer
