@@ -8,7 +8,7 @@ with open('optimized_xgb_gwo.pkl', 'rb') as file:
     model = pickle.load(file)
 
 # ✅ Page Config
-st.set_page_config(page_title="Concrete Strength Predictor", page_icon="🏗️", layout="centered")
+st.set_page_config(page_title="High Strength Glass Powdered Concrete Strength Predictor", page_icon="🏗️", layout="centered")
 
 # ✅ Title & Description
 st.title("🏗️ Concrete Strength Prediction")
@@ -87,6 +87,6 @@ if st.sidebar.button("🔍 Predict Strength"):
 
 # ✅ Footer
 st.markdown("---")
-st.markdown("📌 Built with **XGBoost + Streamlit** | 🚀 Deployed on **Streamlit Cloud**")
+st.markdown("📌 Built with **Optimized Grey Wolf XGBoost** | 🚀 Deployed on **Streamlit Cloud**")
 
 
