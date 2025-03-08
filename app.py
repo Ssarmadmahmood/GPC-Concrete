@@ -35,10 +35,16 @@ if glass_powder > 0:
 water -= superplasticizer * 2  # More plasticizer means lower water demand
 water = max(127.5, water)  # Ensure water doesn't drop below 127.5 kg/m³
 
-# ✅ Warning if total mass is unrealistic
+# ✅ Compute total material weight
 total_mass = cement + fine_aggregate + coarse_aggregate + water + glass_powder + superplasticizer
-if abs(total_mass - 2400) > 100:
-    st.sidebar.warning(f"⚠️ Warning: The total materials do not sum up to approximately 2400 kg/m³. Please adjust the values.")
+
+# ✅ Set realistic density range (2350–2550 kg/m³)
+min_density = 2350
+max_density = 2550
+
+# ✅ Display warning only if total materials are **outside** this realistic range
+if not (min_density <= total_mass <= max_density):
+    st.sidebar.warning(f"⚠️ Warning: The total materials sum to {total_mass:.2f} kg/m³, which is outside the expected range ({min_density}-{max_density} kg/m³). Please adjust the values.")
 
 # ✅ Prepare Input Data
 input_data = np.array([[cement, glass_powder, fine_aggregate, coarse_aggregate, water, superplasticizer, days]])
