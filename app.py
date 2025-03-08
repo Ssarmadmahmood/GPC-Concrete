@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import pickle
-from scipy.optimize import minimize  # ✅ Import optimization function
+from scipy.optimize import minimize  # ✅ Optimization function
 
 # ✅ Load the trained model
 with open('optimized_xgb_gwo.pkl', 'rb') as file:
@@ -13,13 +13,13 @@ st.set_page_config(page_title="Concrete Strength Predictor", page_icon="🏗️"
 
 # ✅ Title & Description
 st.title("🏗️ Glass Powder Concrete Strength Prediction")
-st.markdown("Enter mix proportions or set a target strength to get the best mix design.")
+st.markdown("Enter mix proportions or set a target strength and curing age to get the best mix design.")
 
 # ✅ Sidebar toggle for Prediction vs Reverse Engineering
 mode = st.sidebar.radio("Select Mode:", ["📌 Predict Strength", "🔄 Suggest Mix for Desired Strength"])
 
 if mode == "📌 Predict Strength":
-    # ✅ User enters mix proportions
+    # ✅ User enters mix proportions manually
     cement = st.sidebar.slider("Cement (kg/m³)", 152.0, 1062.0, 400.0, step=1.0)
     fine_aggregate = st.sidebar.slider("Fine Aggregate (kg/m³)", 0.0, 1094.0, 700.0, step=1.0)
     coarse_aggregate = st.sidebar.slider("Coarse Aggregate (kg/m³)", 0.0, 1260.0, 1000.0, step=1.0)
@@ -40,29 +40,30 @@ if mode == "📌 Predict Strength":
         st.balloons()
 
 else:
-    # ✅ Reverse Engineering Mode - User sets Target Strength
+    # ✅ Reverse Engineering Mode - User sets Target Strength & Curing Age
     target_strength = st.sidebar.number_input("Enter Desired Strength (MPa)", min_value=10.0, max_value=150.0, value=50.0, step=0.1)
-    
+    curing_days = st.sidebar.slider("Select Curing Days", 1, 365, 28, step=1)  # ✅ New: User selects curing age
+
     # ✅ Define Optimization Function
     def objective(x):
         # Variables: Cement, Glass Powder, Fine Agg, Coarse Agg, Water, Superplasticizer
-        mix_data = np.array([[x[0], x[1], x[2], x[3], x[4], x[5], 28]])  # Fix curing to 28 days
+        mix_data = np.array([[x[0], x[1], x[2], x[3], x[4], x[5], curing_days]])  # ✅ Uses user-defined curing age
         predicted_strength = model.predict(pd.DataFrame(mix_data, columns=["Cement", "Glass Powder", "Fine Aggregate", "Coarse Aggregate", "Water", "Superplasticizer", "Days"]))[0]
         return abs(predicted_strength - target_strength)  # Minimize the difference
 
-    # ✅ Bounds for Optimization (Based on realistic limits)
+    # ✅ Bounds for Optimization (Based on realistic mix design limits)
     bounds = [(152, 1062), (0, 450), (0, 1094), (0, 1260), (127.5, 271.95), (0, 52.5)]
 
     # ✅ Initial Guess
     initial_guess = [400, 50, 700, 1000, 180, 5]
 
-    # ✅ Run Optimization
+    # ✅ Run Optimization (Now updates dynamically)
     result = minimize(objective, initial_guess, bounds=bounds, method="L-BFGS-B")
 
-    # ✅ Display Optimized Mix
+    # ✅ Display Optimized Mix Proportions
     if result.success:
         best_mix = result.x
-        st.success(f"✅ **Optimal Mix Proportions for {target_strength:.2f} MPa Strength:**")
+        st.success(f"✅ **Optimal Mix Proportions for {target_strength:.2f} MPa Strength at {curing_days} Days:**")
         st.write(f"- Cement: **{best_mix[0]:.1f} kg/m³**")
         st.write(f"- Glass Powder: **{best_mix[1]:.1f} kg/m³**")
         st.write(f"- Fine Aggregate: **{best_mix[2]:.1f} kg/m³**")
@@ -71,4 +72,5 @@ else:
         st.write(f"- Superplasticizer: **{best_mix[5]:.1f} kg/m³**")
         st.balloons()
     else:
-        st.error("❌ Optimization failed to find a suitable mix. Try adjusting the target strength.")
+        st.error("❌ Optimization failed to find a suitable mix. Try adjusting the target strength or curing age.")
+
