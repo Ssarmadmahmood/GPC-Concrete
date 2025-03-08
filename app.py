@@ -1,9 +1,10 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-import pickle  # ✅ Using pickle for model loading
+import pickle
+from scipy.optimize import minimize  # ✅ Import optimization function
 
-# ✅ Load the trained model using pickle
+# ✅ Load the trained model
 with open('optimized_xgb_gwo.pkl', 'rb') as file:
     model = pickle.load(file)
 
@@ -12,53 +13,62 @@ st.set_page_config(page_title="Concrete Strength Predictor", page_icon="🏗️"
 
 # ✅ Title & Description
 st.title("🏗️ Glass Powder Concrete Strength Prediction")
-st.markdown("Enter the mix proportions to predict the compressive strength of high-strength GPC.")
+st.markdown("Enter mix proportions or set a target strength to get the best mix design.")
 
-# ✅ Sidebar for better UI
-st.sidebar.title("🔢 Input Features")
+# ✅ Sidebar toggle for Prediction vs Reverse Engineering
+mode = st.sidebar.radio("Select Mode:", ["📌 Predict Strength", "🔄 Suggest Mix for Desired Strength"])
 
-# ✅ Sliders for Input Features (Manual Entry)
-cement = st.sidebar.slider("Cement (kg/m³)", 152.0, 1062.0, 400.0, step=1.0)
-fine_aggregate = st.sidebar.slider("Fine Aggregate (kg/m³)", 0.0, 1094.0, 700.0, step=1.0)
-coarse_aggregate = st.sidebar.slider("Coarse Aggregate (kg/m³)", 0.0, 1260.0, 1000.0, step=1.0)
-water = st.sidebar.slider("Water (kg/m³)", 127.5, 271.95, 180.0, step=1.0)
-glass_powder = st.sidebar.slider("Glass Powder (kg/m³)", 0.0, 450.0, 50.0, step=1.0)
-superplasticizer = st.sidebar.slider("Superplasticizer (kg/m³)", 0.0, 52.5, 5.0, step=0.1)
-days = st.sidebar.slider("Curing Days", 1, 365, 28, step=1)
+if mode == "📌 Predict Strength":
+    # ✅ User enters mix proportions
+    cement = st.sidebar.slider("Cement (kg/m³)", 152.0, 1062.0, 400.0, step=1.0)
+    fine_aggregate = st.sidebar.slider("Fine Aggregate (kg/m³)", 0.0, 1094.0, 700.0, step=1.0)
+    coarse_aggregate = st.sidebar.slider("Coarse Aggregate (kg/m³)", 0.0, 1260.0, 1000.0, step=1.0)
+    water = st.sidebar.slider("Water (kg/m³)", 127.5, 271.95, 180.0, step=1.0)
+    glass_powder = st.sidebar.slider("Glass Powder (kg/m³)", 0.0, 450.0, 50.0, step=1.0)
+    superplasticizer = st.sidebar.slider("Superplasticizer (kg/m³)", 0.0, 52.5, 5.0, step=0.1)
+    days = st.sidebar.slider("Curing Days", 1, 365, 28, step=1)
 
-# ✅ Adjust Cement when Glass Powder Increases
-if glass_powder > 0:
-    cement -= glass_powder * 0.9  # Reduce cement in proportion to glass powder
-    cement = max(152.0, cement)  # Ensure cement doesn't go below 152 kg/m³
+    # ✅ Prepare Input Data
+    input_data = np.array([[cement, glass_powder, fine_aggregate, coarse_aggregate, water, superplasticizer, days]])
+    columns = ["Cement", "Glass Powder", "Fine Aggregate", "Coarse Aggregate", "Water", "Superplasticizer", "Days"]
+    input_df = pd.DataFrame(input_data, columns=columns)
 
-# ✅ Adjust Water when Superplasticizer Increases
-water -= superplasticizer * 2  # More plasticizer means lower water demand
-water = max(127.5, water)  # Ensure water doesn't drop below 127.5 kg/m³
+    # ✅ Predict Compressive Strength
+    if st.sidebar.button("🔍 Predict Strength"):
+        prediction = model.predict(input_df)[0]  # Get the prediction
+        st.success(f"✅ **Predicted Compressive Strength:** {prediction:.2f} MPa")
+        st.balloons()
 
-# ✅ Compute total material weight
-total_mass = cement + fine_aggregate + coarse_aggregate + water + glass_powder + superplasticizer
+else:
+    # ✅ Reverse Engineering Mode - User sets Target Strength
+    target_strength = st.sidebar.number_input("Enter Desired Strength (MPa)", min_value=10.0, max_value=150.0, value=50.0, step=0.1)
+    
+    # ✅ Define Optimization Function
+    def objective(x):
+        # Variables: Cement, Glass Powder, Fine Agg, Coarse Agg, Water, Superplasticizer
+        mix_data = np.array([[x[0], x[1], x[2], x[3], x[4], x[5], 28]])  # Fix curing to 28 days
+        predicted_strength = model.predict(pd.DataFrame(mix_data, columns=["Cement", "Glass Powder", "Fine Aggregate", "Coarse Aggregate", "Water", "Superplasticizer", "Days"]))[0]
+        return abs(predicted_strength - target_strength)  # Minimize the difference
 
-# ✅ Set realistic density range (2350–2550 kg/m³)
-min_density = 2350
-max_density = 2550
+    # ✅ Bounds for Optimization (Based on realistic limits)
+    bounds = [(152, 1062), (0, 450), (0, 1094), (0, 1260), (127.5, 271.95), (0, 52.5)]
 
-# ✅ Display warning only if total materials are **outside** this realistic range
-if not (min_density <= total_mass <= max_density):
-    st.sidebar.warning(f"⚠️ Warning: The total materials sum to {total_mass:.2f} kg/m³, which is outside the expected range ({min_density}-{max_density} kg/m³). Please adjust the values.")
+    # ✅ Initial Guess
+    initial_guess = [400, 50, 700, 1000, 180, 5]
 
-# ✅ Prepare Input Data
-input_data = np.array([[cement, glass_powder, fine_aggregate, coarse_aggregate, water, superplasticizer, days]])
-columns = ["Cement", "Glass Powder", "Fine Aggregate", "Coarse Aggregate", "Water", "Superplasticizer", "Days"]
-input_df = pd.DataFrame(input_data, columns=columns)
+    # ✅ Run Optimization
+    result = minimize(objective, initial_guess, bounds=bounds, method="L-BFGS-B")
 
-# ✅ Predict Compressive Strength
-if st.sidebar.button("🔍 Predict Strength"):
-    prediction = model.predict(input_df)[0]  # Get the prediction
-    st.success(f"✅ **Predicted Compressive Strength:** {prediction:.2f} MPa")
-    st.balloons()
-
-# ✅ Footer
-st.markdown("---")
-st.markdown("📌 Built with **Optimized Grey Wolf XGBoost** | 🚀 Deployed on **Streamlit Cloud**")
-
-
+    # ✅ Display Optimized Mix
+    if result.success:
+        best_mix = result.x
+        st.success(f"✅ **Optimal Mix Proportions for {target_strength:.2f} MPa Strength:**")
+        st.write(f"- Cement: **{best_mix[0]:.1f} kg/m³**")
+        st.write(f"- Glass Powder: **{best_mix[1]:.1f} kg/m³**")
+        st.write(f"- Fine Aggregate: **{best_mix[2]:.1f} kg/m³**")
+        st.write(f"- Coarse Aggregate: **{best_mix[3]:.1f} kg/m³**")
+        st.write(f"- Water: **{best_mix[4]:.1f} kg/m³**")
+        st.write(f"- Superplasticizer: **{best_mix[5]:.1f} kg/m³**")
+        st.balloons()
+    else:
+        st.error("❌ Optimization failed to find a suitable mix. Try adjusting the target strength.")
