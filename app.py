@@ -1,10 +1,9 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-import pickle
-from scipy.optimize import minimize  # ✅ Powell’s method for better optimization
+import pickle  # ✅ Using pickle for model loading
 
-# ✅ Load the trained model
+# ✅ Load the trained model using pickle
 with open('optimized_xgb_gwo.pkl', 'rb') as file:
     model = pickle.load(file)
 
@@ -13,87 +12,55 @@ st.set_page_config(page_title="Concrete Strength Predictor", page_icon="🏗️"
 
 # ✅ Title & Description
 st.title("🏗️ Glass Powder Concrete Strength Prediction")
-st.markdown("Enter mix proportions or set a target strength and curing age to get the best mix design.")
+st.markdown("Enter the mix proportions to predict the compressive strength of high-strength GPC.")
 
-# ✅ Sidebar toggle for Prediction vs Reverse Engineering
-mode = st.sidebar.radio("Select Mode:", ["📌 Predict Strength", "🔄 Suggest Mix for Desired Strength"])
+# ✅ Sidebar for better UI
+st.sidebar.title("🔢 Input Features")
 
-if mode == "📌 Predict Strength":
-    # ✅ User enters mix proportions manually
-    cement = st.sidebar.slider("Cement (kg/m³)", 152.0, 1062.0, 400.0, step=1.0)
-    fine_aggregate = st.sidebar.slider("Fine Aggregate (kg/m³)", 0.0, 1094.0, 700.0, step=1.0)
-    coarse_aggregate = st.sidebar.slider("Coarse Aggregate (kg/m³)", 0.0, 1260.0, 1000.0, step=1.0)
-    water = st.sidebar.slider("Water (kg/m³)", 127.5, 271.95, 180.0, step=1.0)
-    glass_powder = st.sidebar.slider("Glass Powder (kg/m³)", 0.0, 450.0, 50.0, step=1.0)
-    superplasticizer = st.sidebar.slider("Superplasticizer (kg/m³)", 0.0, 52.5, 5.0, step=0.1)
-    days = st.sidebar.slider("Curing Days", 1, 365, 28, step=1)
+# ✅ Sliders for Input Features (Manual Entry)
+cement = st.sidebar.slider("Cement (kg/m³)", 152.0, 1062.0, 400.0, step=1.0)
+fine_aggregate = st.sidebar.slider("Fine Aggregate (kg/m³)", 0.0, 1094.0, 700.0, step=1.0)
+coarse_aggregate = st.sidebar.slider("Coarse Aggregate (kg/m³)", 0.0, 1260.0, 1000.0, step=1.0)
+water = st.sidebar.slider("Water (kg/m³)", 127.5, 271.95, 180.0, step=1.0)
+glass_powder = st.sidebar.slider("Glass Powder (kg/m³)", 0.0, 450.0, 50.0, step=1.0)
+superplasticizer = st.sidebar.slider("Superplasticizer (kg/m³)", 0.0, 52.5, 5.0, step=0.1)
+days = st.sidebar.slider("Curing Days", 1, 365, 28, step=1)
 
-    # ✅ Prepare Input Data
-    input_data = np.array([[cement, glass_powder, fine_aggregate, coarse_aggregate, water, superplasticizer, days]])
-    columns = ["Cement", "Glass Powder", "Fine Aggregate", "Coarse Aggregate", "Water", "Superplasticizer", "Days"]
-    input_df = pd.DataFrame(input_data, columns=columns)
+# ✅ Adjust Cement when Glass Powder Increases
+if glass_powder > 0:
+    cement -= glass_powder * 0.9  # Reduce cement in proportion to glass powder
+    cement = max(152.0, cement)  # Ensure cement doesn't go below 152 kg/m³
 
-    # ✅ Predict Compressive Strength
-    if st.sidebar.button("🔍 Predict Strength"):
-        prediction = model.predict(input_df)[0]  # Get the prediction
-        st.success(f"✅ **Predicted Compressive Strength:** {prediction:.2f} MPa")
-        st.balloons()
+# ✅ Adjust Water when Superplasticizer Increases
+water -= superplasticizer * 2  # More plasticizer means lower water demand
+water = max(127.5, water)  # Ensure water doesn't drop below 127.5 kg/m³
 
-else:
-    # ✅ Reverse Engineering Mode - User sets Target Strength & Curing Age
-    target_strength = st.sidebar.number_input("Enter Desired Strength (MPa)", min_value=10.0, max_value=150.0, value=50.0, step=0.1)
-    curing_days = st.sidebar.slider("Select Curing Days", 1, 365, 28, step=1)
+# ✅ Compute total material weight
+total_mass = cement + fine_aggregate + coarse_aggregate + water + glass_powder + superplasticizer
 
-    # ✅ Define Optimization Function
-    def objective(x):
-        """Optimization function to minimize strength difference."""
-        mix_data = np.array([[x[0], x[1], x[2], x[3], x[4], x[5], curing_days]])
-        predicted_strength = model.predict(pd.DataFrame(mix_data, columns=["Cement", "Glass Powder", "Fine Aggregate", "Coarse Aggregate", "Water", "Superplasticizer", "Days"]))[0]
-        return abs(predicted_strength - target_strength)  # Minimize the difference
+# ✅ Set realistic density range (2350–2550 kg/m³)
+min_density = 2350
+max_density = 2550
 
-    # ✅ Constraints: Ensure total mix proportion is reasonable (~2400 kg/m³)
-    def total_mass_constraint(x):
-        return 2400 - (x[0] + x[1] + x[2] + x[3] + x[4] + x[5])
+# ✅ Display warning only if total materials are **outside** this realistic range
+if not (min_density <= total_mass <= max_density):
+    st.sidebar.warning(f"⚠️ Warning: The total materials sum to {total_mass:.2f} kg/m³, which is outside the expected range ({min_density}-{max_density} kg/m³). Please adjust the values.")
 
-    constraints = [{'type': 'eq', 'fun': total_mass_constraint}]
 
-    # ✅ Expanded Bounds for Optimization (More Practical)
-    bounds = [(150, 1100), (0, 500), (0, 1200), (0, 1300), (125, 300), (0, 60)]  # Cement, GP, FA, CA, Water, SP
+# ✅ Prepare Input Data
+input_data = np.array([[cement, glass_powder, fine_aggregate, coarse_aggregate, water, superplasticizer, days]])
+columns = ["Cement", "Glass Powder", "Fine Aggregate", "Coarse Aggregate", "Water", "Superplasticizer", "Days"]
+input_df = pd.DataFrame(input_data, columns=columns)
 
-    # ✅ Randomized Initial Guess to Prevent Stagnation
-    initial_guess = np.random.uniform([200, 20, 500, 800, 150, 2], [600, 100, 800, 1100, 220, 15])
+# ✅ Predict Compressive Strength
+if st.sidebar.button("🔍 Predict Strength"):
+    prediction = model.predict(input_df)[0]  # Get the prediction
+    st.success(f"✅ **Predicted Compressive Strength:** {prediction:.2f} MPa")
+    st.balloons()
 
-    # ✅ Run Optimization using Powell’s Method (Faster and More Reliable)
-    result = minimize(objective, initial_guess, bounds=bounds, method="Powell", constraints=constraints, options={'maxiter': 50})
-
-    # ✅ Display Optimized Mix Proportions
-    if result.success:
-        best_mix = result.x
-        final_strength = model.predict(pd.DataFrame([best_mix.tolist() + [curing_days]], columns=["Cement", "Glass Powder", "Fine Aggregate", "Coarse Aggregate", "Water", "Superplasticizer", "Days"]))[0]
-
-        st.success(f"✅ **Optimal Mix Proportions for {target_strength:.2f} MPa Strength at {curing_days} Days:**")
-        st.write(f"- Cement: **{best_mix[0]:.1f} kg/m³**")
-        st.write(f"- Glass Powder: **{best_mix[1]:.1f} kg/m³**")
-        st.write(f"- Fine Aggregate: **{best_mix[2]:.1f} kg/m³**")
-        st.write(f"- Coarse Aggregate: **{best_mix[3]:.1f} kg/m³**")
-        st.write(f"- Water: **{best_mix[4]:.1f} kg/m³**")
-        st.write(f"- Superplasticizer: **{best_mix[5]:.1f} kg/m³**")
-        st.success(f"🎯 **Predicted Strength of this Mix:** {final_strength:.2f} MPa")
-        st.balloons()
-    
-    else:
-        st.warning("⚠️ Optimization could not find an exact mix, trying to find the closest one...")
-        closest_guess = result.x
-        closest_strength = model.predict(pd.DataFrame([closest_guess.tolist() + [curing_days]], columns=["Cement", "Glass Powder", "Fine Aggregate", "Coarse Aggregate", "Water", "Superplasticizer", "Days"]))[0]
-
-        st.warning(f"✅ **Closest Mix Found (Strength: {closest_strength:.2f} MPa):**")
-        st.write(f"- Cement: **{closest_guess[0]:.1f} kg/m³**")
-        st.write(f"- Glass Powder: **{closest_guess[1]:.1f} kg/m³**")
-        st.write(f"- Fine Aggregate: **{closest_guess[2]:.1f} kg/m³**")
-        st.write(f"- Coarse Aggregate: **{closest_guess[3]:.1f} kg/m³**")
-        st.write(f"- Water: **{closest_guess[4]:.1f} kg/m³**")
-        st.write(f"- Superplasticizer: **{closest_guess[5]:.1f} kg/m³**")
-        st.info("🔄 Try adjusting the curing days or target strength slightly for a better match.")
+# ✅ Footer
+st.markdown("---")
+st.markdown("📌 Built with **Optimized Grey Wolf XGBoost** | 🚀 Deployed on **Streamlit Cloud**")
 
 
 
