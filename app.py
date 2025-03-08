@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import pickle
-from scipy.optimize import minimize  # ✅ Optimization function
+from scipy.optimize import differential_evolution  # ✅ Using Differential Evolution for better optimization
 
 # ✅ Load the trained model
 with open('optimized_xgb_gwo.pkl', 'rb') as file:
@@ -46,19 +46,17 @@ else:
 
     # ✅ Define Optimization Function
     def objective(x):
-        # Variables: Cement, Glass Powder, Fine Agg, Coarse Agg, Water, Superplasticizer
+        """ Optimization objective function to minimize strength difference. """
         mix_data = np.array([[x[0], x[1], x[2], x[3], x[4], x[5], curing_days]])  # ✅ Uses user-defined curing age
         predicted_strength = model.predict(pd.DataFrame(mix_data, columns=["Cement", "Glass Powder", "Fine Aggregate", "Coarse Aggregate", "Water", "Superplasticizer", "Days"]))[0]
+        
         return abs(predicted_strength - target_strength)  # Minimize the difference
 
     # ✅ Bounds for Optimization (Based on realistic mix design limits)
-    bounds = [(152, 1062), (0, 450), (0, 1094), (0, 1260), (127.5, 271.95), (0, 52.5)]
+    bounds = [(152, 1062), (0, 450), (0, 1094), (0, 1260), (127.5, 271.95), (0, 52.5)]  # Cement, GP, FA, CA, Water, SP
 
-    # ✅ Initial Guess
-    initial_guess = [400, 50, 700, 1000, 180, 5]
-
-    # ✅ Run Optimization (Now updates dynamically)
-    result = minimize(objective, initial_guess, bounds=bounds, method="L-BFGS-B")
+    # ✅ Run Optimization with Differential Evolution (DE)
+    result = differential_evolution(objective, bounds, strategy='best1bin', maxiter=100, popsize=20, tol=0.01)
 
     # ✅ Display Optimized Mix Proportions
     if result.success:
