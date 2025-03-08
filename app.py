@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import pickle
-from scipy.optimize import differential_evolution  # ✅ Using DE for mix optimization
+from scipy.optimize import minimize  # ✅ Using Faster L-BFGS-B Optimization
 
 # ✅ Load the trained model
 with open('optimized_xgb_gwo.pkl', 'rb') as file:
@@ -42,23 +42,25 @@ if mode == "📌 Predict Strength":
 else:
     # ✅ Reverse Engineering Mode - User sets Target Strength & Curing Age
     target_strength = st.sidebar.number_input("Enter Desired Strength (MPa)", min_value=10.0, max_value=150.0, value=50.0, step=0.1)
-    curing_days = st.sidebar.slider("Select Curing Days", 1, 365, 28, step=1)  # ✅ New: User selects curing age
+    curing_days = st.sidebar.slider("Select Curing Days", 1, 365, 28, step=1)
 
     # ✅ Define Optimization Function
     def objective(x):
-        """ Optimization objective function to minimize strength difference. """
-        mix_data = np.array([[x[0], x[1], x[2], x[3], x[4], x[5], curing_days]])  # ✅ Uses user-defined curing age
+        """Optimization function to minimize strength difference."""
+        mix_data = np.array([[x[0], x[1], x[2], x[3], x[4], x[5], curing_days]])
         predicted_strength = model.predict(pd.DataFrame(mix_data, columns=["Cement", "Glass Powder", "Fine Aggregate", "Coarse Aggregate", "Water", "Superplasticizer", "Days"]))[0]
-        
         return abs(predicted_strength - target_strength)  # Minimize the difference
 
-    # ✅ Expanded Bounds for Optimization (More Flexibility)
+    # ✅ Bounds for Optimization (More Practical)
     bounds = [(150, 1100), (0, 500), (0, 1200), (0, 1300), (125, 300), (0, 60)]  # Cement, GP, FA, CA, Water, SP
 
-    # ✅ Run Optimization with Better Settings
-    result = differential_evolution(objective, bounds, strategy='best1bin', maxiter=150, popsize=50, tol=0.001)
+    # ✅ Initial Guess (Based on Practical Mix)
+    initial_guess = [400, 50, 700, 1000, 180, 5]
 
-    # ✅ Fallback - Find Closest Mix if Optimization Fails
+    # ✅ Run Optimization using L-BFGS-B (Faster)
+    result = minimize(objective, initial_guess, bounds=bounds, method="L-BFGS-B", options={'maxiter': 30})
+
+    # ✅ Display Optimized Mix Proportions
     if result.success:
         best_mix = result.x
         final_strength = model.predict(pd.DataFrame([best_mix.tolist() + [curing_days]], columns=["Cement", "Glass Powder", "Fine Aggregate", "Coarse Aggregate", "Water", "Superplasticizer", "Days"]))[0]
@@ -86,5 +88,6 @@ else:
         st.write(f"- Water: **{closest_guess[4]:.1f} kg/m³**")
         st.write(f"- Superplasticizer: **{closest_guess[5]:.1f} kg/m³**")
         st.info("🔄 Try adjusting the curing days or target strength slightly for a better match.")
+
 
 
