@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import pickle
-from scipy.optimize import minimize  # ✅ Using Faster L-BFGS-B Optimization
+from scipy.optimize import minimize  # ✅ Powell’s method for better optimization
 
 # ✅ Load the trained model
 with open('optimized_xgb_gwo.pkl', 'rb') as file:
@@ -51,14 +51,20 @@ else:
         predicted_strength = model.predict(pd.DataFrame(mix_data, columns=["Cement", "Glass Powder", "Fine Aggregate", "Coarse Aggregate", "Water", "Superplasticizer", "Days"]))[0]
         return abs(predicted_strength - target_strength)  # Minimize the difference
 
-    # ✅ Bounds for Optimization (More Practical)
+    # ✅ Constraints: Ensure total mix proportion is reasonable (~2400 kg/m³)
+    def total_mass_constraint(x):
+        return 2400 - (x[0] + x[1] + x[2] + x[3] + x[4] + x[5])
+
+    constraints = [{'type': 'eq', 'fun': total_mass_constraint}]
+
+    # ✅ Expanded Bounds for Optimization (More Practical)
     bounds = [(150, 1100), (0, 500), (0, 1200), (0, 1300), (125, 300), (0, 60)]  # Cement, GP, FA, CA, Water, SP
 
-    # ✅ Initial Guess (Based on Practical Mix)
-    initial_guess = [400, 50, 700, 1000, 180, 5]
+    # ✅ Randomized Initial Guess to Prevent Stagnation
+    initial_guess = np.random.uniform([200, 20, 500, 800, 150, 2], [600, 100, 800, 1100, 220, 15])
 
-    # ✅ Run Optimization using L-BFGS-B (Faster)
-    result = minimize(objective, initial_guess, bounds=bounds, method="L-BFGS-B", options={'maxiter': 30})
+    # ✅ Run Optimization using Powell’s Method (Faster and More Reliable)
+    result = minimize(objective, initial_guess, bounds=bounds, method="Powell", constraints=constraints, options={'maxiter': 50})
 
     # ✅ Display Optimized Mix Proportions
     if result.success:
